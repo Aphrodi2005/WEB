@@ -1,0 +1,8 @@
+{{template "base" .}}
+{{define "title"}}{{.Contact.Name}} - Contact{{end}}
+{{define "main"}}
+<h2>{{.Contact.Name}}</h2>
+<p>Location: {{.Contact.Location}}</p>
+<p>Created: {{humanDate .Contact.CreatedAt}}</p>
+<p>Last Updated: {{humanDate .Contact.UpdatedAt}}</p>
+{{end}}
