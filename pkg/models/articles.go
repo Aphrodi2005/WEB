@@ -14,21 +14,21 @@ var (
 )
 
 type Article struct {
-	ID      int
-	Title   string
-	Content string
-	Created time.Time
+	ID       int
+	Title    string
+	Content  string
+	Created  time.Time
+	Category sql.NullString // Используем sql.NullString для учета NULL
 }
 
 type ArticleModel struct {
 	DB *sql.DB
 }
 
-// ... (existing methods)
+func (m *ArticleModel) Create(title, content, category string) error {
+	stmt := `INSERT INTO articles (title, content, category, created) VALUES (?, ?, ?, UTC_TIMESTAMP())`
 
-func (m *ArticleModel) Create(title, content string) error {
-	stmt := `INSERT INTO articles (title, content, created) VALUES (?, ?, UTC_TIMESTAMP())`
-	_, err := m.DB.Exec(stmt, title, content)
+	_, err := m.DB.Exec(stmt, title, content, category)
 	if err != nil {
 		if isDuplicateError(err) {
 			return ErrDuplicate
@@ -38,9 +38,9 @@ func (m *ArticleModel) Create(title, content string) error {
 	return nil
 }
 
-func (m *ArticleModel) Update(id int, title, content string) error {
-	stmt := `UPDATE articles SET title=?, content=?, created=UTC_TIMESTAMP() WHERE id=?`
-	_, err := m.DB.Exec(stmt, title, content, id)
+func (m *ArticleModel) Update(title, content, category string, id int) error {
+	stmt := `UPDATE articles SET title=?, content=?, category=?, created=UTC_TIMESTAMP() WHERE id=?`
+	_, err := m.DB.Exec(stmt, title, content, category, id)
 	if err != nil {
 		if isDuplicateError(err) {
 			return ErrDuplicate
@@ -53,7 +53,13 @@ func (m *ArticleModel) Update(id int, title, content string) error {
 func (m *ArticleModel) Delete(id int) error {
 	stmt := `DELETE FROM articles WHERE id=?`
 	_, err := m.DB.Exec(stmt, id)
-	return err
+	if err != nil {
+		if isDuplicateError(err) {
+			return ErrDuplicate
+		}
+		return err
+	}
+	return nil
 }
 
 // Helper function to check if a MySQL error is a duplicate entry error
@@ -62,12 +68,12 @@ func isDuplicateError(err error) bool {
 }
 
 func (m *ArticleModel) Get(id int) (*Article, error) {
-	// Implement the logic to retrieve an article by ID from the database
-	stmt := `SELECT id, title, content, created FROM articles WHERE id = ?`
+
+	stmt := `SELECT id, title,  content, category,  created FROM articles WHERE id = ?`
 	row := m.DB.QueryRow(stmt, id)
 
 	article := &Article{}
-	err := row.Scan(&article.ID, &article.Title, &article.Content, &article.Created)
+	err := row.Scan(&article.ID, &article.Title, &article.Content, &article.Category, &article.Created)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNoArticle
@@ -78,9 +84,9 @@ func (m *ArticleModel) Get(id int) (*Article, error) {
 	return article, nil
 }
 
-func (m *ArticleModel) Latest() ([]*Article, error) {
-	// Implement the logic to retrieve the latest articles from the database
-	stmt := `SELECT id, title, content, created FROM articles ORDER BY created DESC LIMIT 10`
+func (m *ArticleModel) Latest(int) ([]*Article, error) {
+
+	stmt := `SELECT id, title, content, category, created FROM articles ORDER BY created DESC LIMIT 10`
 	rows, err := m.DB.Query(stmt)
 	if err != nil {
 		return nil, err
@@ -91,7 +97,7 @@ func (m *ArticleModel) Latest() ([]*Article, error) {
 
 	for rows.Next() {
 		article := &Article{}
-		err := rows.Scan(&article.ID, &article.Title, &article.Content, &article.Created)
+		err := rows.Scan(&article.ID, &article.Title, &article.Content, &article.Category, &article.Created)
 		if err != nil {
 			return nil, err
 		}
@@ -99,6 +105,37 @@ func (m *ArticleModel) Latest() ([]*Article, error) {
 	}
 
 	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return articles, nil
+}
+func (m *ArticleModel) GetArticlesByCategory(category string) ([]*Article, error) {
+	query := `
+        SELECT id, title, content, category
+        FROM articles
+        WHERE category = ?
+        ORDER BY created DESC
+    `
+
+	rows, err := m.DB.Query(query, category)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var articles []*Article
+
+	for rows.Next() {
+		article := &Article{}
+		err := rows.Scan(&article.ID, &article.Title, &article.Content, &article.Category)
+		if err != nil {
+			return nil, err
+		}
+		articles = append(articles, article)
+	}
+
+	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 

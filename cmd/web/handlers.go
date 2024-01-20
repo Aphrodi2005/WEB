@@ -8,19 +8,7 @@ import (
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	articles, err := app.articles.Latest()
-	if err != nil {
-		app.serverError(w, err)
-		return
-	}
-
-	categories, err := app.categories.All()
-	if err != nil {
-		app.serverError(w, err)
-		return
-	}
-
-	contacts, err := app.contacts.All()
+	articles, err := app.articles.Latest(10)
 	if err != nil {
 		app.serverError(w, err)
 		return
@@ -28,90 +16,50 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
 	// Pass the data to the home page template
 	err = app.render(w, r, "home.page.tmpl", &templateData{
-		Articles:   articles,
-		Categories: categories,
-		Contacts:   contacts,
+		Articles: articles,
 	})
 	if err != nil {
 		app.serverError(w, err)
 	}
 }
-
-func (app *application) showArticle(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.URL.Query().Get("id"))
-	if err != nil || id < 1 {
-		app.notFound(w)
-		return
-	}
-
-	article, err := app.articles.Get(id)
-	if err != nil {
-		if errors.Is(err, models.ErrNoArticle) {
-			app.notFound(w)
-		} else {
-			app.serverError(w, err)
-		}
-		return
-	}
-
-	err = app.render(w, r, "show.page.tmpl", &templateData{
-		Article: article,
-	})
+func (app *application) forStudents(w http.ResponseWriter, r *http.Request) {
+	articles, err := app.articles.GetArticlesByCategory("For students")
 	if err != nil {
 		app.serverError(w, err)
+		return
 	}
+
+	app.render(w, r, "students.page.tmpl", &templateData{ForStudents: articles})
 }
 
-func (app *application) showCategory(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.URL.Query().Get("id"))
-	if err != nil || id < 1 {
-		app.notFound(w)
-		return
-	}
-
-	category, err := app.categories.Get(id)
-	if err != nil {
-		if errors.Is(err, models.ErrNoCategory) {
-			app.notFound(w)
-		} else {
-			app.serverError(w, err)
-		}
-		return
-	}
-
-	err = app.render(w, r, "category.page.tmpl", &templateData{
-		Category: category,
-		Articles: nil, // Add articles data if needed
-		Contacts: nil, // Add contacts data if needed
-	})
+func (app *application) forStaff(w http.ResponseWriter, r *http.Request) {
+	articles, err := app.articles.GetArticlesByCategory("For staff")
 	if err != nil {
 		app.serverError(w, err)
+		return
 	}
+
+	app.render(w, r, "staff.page.tmpl", &templateData{ForStaff: articles})
 }
 
-func (app *application) showContact(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.URL.Query().Get("id"))
-	if err != nil || id < 1 {
-		app.notFound(w)
-		return
-	}
-
-	contact, err := app.contacts.Get(id)
-	if err != nil {
-		if errors.Is(err, models.ErrNoContact) {
-			app.notFound(w)
-		} else {
-			app.serverError(w, err)
-		}
-		return
-	}
-
-	err = app.render(w, r, "contact.page.tmpl", &templateData{
-		Contact: contact,
-	})
+func (app *application) forApplicants(w http.ResponseWriter, r *http.Request) {
+	articles, err := app.articles.GetArticlesByCategory("For applicants")
 	if err != nil {
 		app.serverError(w, err)
+		return
 	}
+
+	app.render(w, r, "applicants.page.tmpl", &templateData{ForApplicants: articles})
+}
+
+func (app *application) forResearches(w http.ResponseWriter, r *http.Request) {
+	articles, err := app.articles.GetArticlesByCategory("For researches")
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	app.render(w, r, "researches.page.tmpl", &templateData{ForResearches: articles})
 }
 func (app *application) createArticle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -127,8 +75,9 @@ func (app *application) createArticle(w http.ResponseWriter, r *http.Request) {
 
 	title := r.PostForm.Get("title")
 	content := r.PostForm.Get("content")
+	category := r.PostForm.Get("category")
 
-	err = app.articles.Create(title, content)
+	err = app.articles.Create(title, content, category)
 	if errors.Is(err, models.ErrDuplicate) {
 		app.clientError(w, http.StatusBadRequest)
 		return
@@ -157,11 +106,12 @@ func (app *application) updateArticle(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
 		return
 	}
-
 	title := r.PostForm.Get("title")
+	category := r.PostForm.Get("category")
 	content := r.PostForm.Get("content")
 
-	err = app.articles.Update(id, title, content)
+	err = app.articles.Update(title, content, category, id)
+
 	if errors.Is(err, models.ErrDuplicate) {
 		app.clientError(w, http.StatusBadRequest)
 		return
@@ -170,18 +120,19 @@ func (app *application) updateArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/articles", http.StatusSeeOther)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+
 }
 
 func (app *application) deleteArticle(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodDelete {
 		app.clientError(w, http.StatusMethodNotAllowed)
 		return
 	}
 
-	id, err := strconv.Atoi(r.PostForm.Get("id"))
+	id, err := strconv.Atoi(r.FormValue("id"))
 	if err != nil || id < 1 {
-		app.notFound(w)
+		app.clientError(w, http.StatusBadRequest)
 		return
 	}
 
@@ -191,5 +142,6 @@ func (app *application) deleteArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/articles", http.StatusSeeOther)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+
 }

@@ -13,11 +13,10 @@ import (
 )
 
 type application struct {
-	errorLog      *log.Logger
-	infoLog       *log.Logger
-	articles      *models.ArticleModel  // Update this to use the correct model
-	categories    *models.CategoryModel // Update this to use the correct model
-	contacts      *models.ContactModel  // Update this to use the correct model
+	errorLog *log.Logger
+	infoLog  *log.Logger
+	articles *models.ArticleModel
+
 	templateCache map[string]*template.Template
 }
 
@@ -42,8 +41,6 @@ func main() {
 		errorLog:      errorLog,
 		infoLog:       infoLog,
 		articles:      &models.ArticleModel{DB: db},
-		categories:    &models.CategoryModel{DB: db},
-		contacts:      &models.ContactModel{DB: db},
 		templateCache: templateCache,
 	}
 

@@ -1,20 +1,26 @@
-// routes.go
 package main
 
 import (
+	"github.com/gorilla/mux"
 	"net/http"
 )
 
-func (app *application) routes() *http.ServeMux {
-	mux := http.NewServeMux()
+func (app *application) routes() http.Handler {
+
+	mux := mux.NewRouter()
+
+	mux.HandleFunc("/for-students", app.forStudents)
+	mux.HandleFunc("/for-staff", app.forStaff)
+	mux.HandleFunc("/for-applicants", app.forApplicants)
+	mux.HandleFunc("/for-researches", app.forResearches)
+
 	mux.HandleFunc("/", app.home)
-	mux.HandleFunc("/article", app.showArticle)
-	mux.HandleFunc("/contact", app.showContact)
-	mux.HandleFunc("/category", app.showCategory)
+	mux.HandleFunc("/createArticle", app.createArticle)
+	mux.HandleFunc("/updateArticle", app.updateArticle).Methods("POST")
+	mux.HandleFunc("/deleteArticle", app.deleteArticle).Methods("DELETE")
 
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
+	mux.PathPrefix("/static/").Handler(http.StripPrefix("/static", fileServer))
+
 	return mux
 }
-
-// Add a new handler for articles

@@ -9,14 +9,17 @@ import (
 )
 
 type templateData struct {
-	CurrentYear int
-	Articles    []*models.Article
-	Categories  []*models.Category
-	Contacts    []*models.Contact
-	Article     *models.Article
-	Category    *models.Category
-	Contact     *models.Contact
+	CurrentYear      int
+	Articles         []*models.Article
+	Article          *models.Article
+	SelectedCategory string
+	ForStudents      []*models.Article
+	ForStaff         []*models.Article
+	ForResearches    []*models.Article
+	ForApplicants    []*models.Article
 }
+
+var templates *template.Template
 
 func humanDate(t time.Time) string {
 	return t.Format("02 Jan 2006 at 15:04")
