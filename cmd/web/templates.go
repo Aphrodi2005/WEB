@@ -19,8 +19,6 @@ type templateData struct {
 	ForApplicants    []*models.Article
 }
 
-var templates *template.Template
-
 func humanDate(t time.Time) string {
 	return t.Format("02 Jan 2006 at 15:04")
 }

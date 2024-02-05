@@ -14,7 +14,6 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Pass the data to the home page template
 	err = app.render(w, r, "home.page.tmpl", &templateData{
 		Articles: articles,
 	})
@@ -86,7 +85,7 @@ func (app *application) createArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/articles", http.StatusSeeOther)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (app *application) updateArticle(w http.ResponseWriter, r *http.Request) {
@@ -143,5 +142,10 @@ func (app *application) deleteArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
-
+}
+func (app *application) contacts(w http.ResponseWriter, r *http.Request) {
+	err := app.render(w, r, "contact.page.tmpl", nil)
+	if err != nil {
+		app.serverError(w, err)
+	}
 }

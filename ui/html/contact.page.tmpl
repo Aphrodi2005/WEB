@@ -1,4 +1,5 @@
-{{ define "students.page.tmpl" }}
+{{ define "departments.page.tmpl" }}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,23 +13,46 @@
   <link rel="stylesheet" href="/static/css/go1.css">
 </head>
 <body>
-<div class="button-container">
-<a class="btn btn-primary" href="/">Home</a>
+ <div class="button-container">
+    <a class="btn btn-primary" href="/departments">Departments</a>
    <a class="btn btn-primary" href="/for-students">For Students</a>
    <a class="btn btn-primary" href="/for-staff">For Staff</a>
    <a class="btn btn-primary" href="/for-applicants">For Applicants</a>
    <a class="btn btn-primary" href="/for-researches">For Researches</a>
     <a class="btn btn-primary" href="/contacts">contacts</a>
  </div>
- <div class="container mt-4">
-   <h2>For Students</h2>
-   {{ range .ForStudents }}
-     {{ template "content" . }}
- </div>
+
+
+  <button class="btn btn-primary mb-4" onclick="showForm('create-form')">Add New Departments</button>
+
+
+  <form id="create-form" method="post" action="/createDepartments" style="display: none;">
+    <div class="mb-3">
+      <label for="name" class="form-label">Name:</label>
+      <input type="text" class="form-control" id="name" name="name" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="quantity" class="form-label">quantity:</label>
+      <textarea class="form-control" id="quantity" name="quantity" required></textarea>
+    </div>
+    <button class="btn btn-success" type="submit">Create Departments</button>
+  </form>
+
+
+
+ {{ range .Articles }}
+ {{ template "content" . }}
+
  {{ end }}
+</div>
+
 <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
 <script src="/static/js/main.js"></script>
+
+
+
 
 
 

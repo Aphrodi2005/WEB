@@ -4,6 +4,7 @@ package models
 import (
 	"database/sql"
 	"errors"
+	_ "github.com/go-sql-driver/mysql"
 	"strings"
 	"time"
 )
@@ -14,15 +15,23 @@ var (
 )
 
 type Article struct {
-	ID       int
-	Title    string
-	Content  string
-	Created  time.Time
-	Category sql.NullString // Используем sql.NullString для учета NULL
+	ID        int
+	Title     string
+	Content   string
+	Created   time.Time
+	Category  sql.NullString
+	DepID     int
+	Name      string
+	Quantinty int
 }
 
 type ArticleModel struct {
 	DB *sql.DB
+}
+type Department struct {
+	ID       int
+	Name     string
+	Quantity int
 }
 
 func (m *ArticleModel) Create(title, content, category string) error {

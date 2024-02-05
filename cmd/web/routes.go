@@ -18,7 +18,7 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("/createArticle", app.createArticle)
 	mux.HandleFunc("/updateArticle", app.updateArticle).Methods("POST")
 	mux.HandleFunc("/deleteArticle", app.deleteArticle).Methods("DELETE")
-
+	mux.HandleFunc("/contacts", app.contacts)
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
 	mux.PathPrefix("/static/").Handler(http.StripPrefix("/static", fileServer))
 
