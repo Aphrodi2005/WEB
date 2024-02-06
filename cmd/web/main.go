@@ -15,13 +15,13 @@ import (
 type application struct {
 	errorLog *log.Logger
 	infoLog  *log.Logger
-	articles *models.ArticleModel
+	movies   *models.MovieModel
 
 	templateCache map[string]*template.Template
 }
 
 func main() {
-	dsn := flag.String("dsn", "web:pass@/snippetbox?parseTime=true", "MySQL data source name")
+	dsn := flag.String("dsn", "web:pass@/movies?parseTime=true", "MySQL data source name")
 	addr := flag.String("addr", ":4000", "HTTP network address")
 	flag.Parse()
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
@@ -40,7 +40,7 @@ func main() {
 	app := &application{
 		errorLog:      errorLog,
 		infoLog:       infoLog,
-		articles:      &models.ArticleModel{DB: db},
+		movies:        &models.MovieModel{DB: db},
 		templateCache: templateCache,
 	}
 

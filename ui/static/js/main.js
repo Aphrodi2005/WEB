@@ -4,31 +4,29 @@ function showForm(formId) {
 }
 
 
-    function deleteArticle(articleId) {
-    if (confirm('вы уверены что хотите удалить статью?')) {
+function deleteMovie(movieId) {
+    if (confirm('Вы уверены что хотите удалить статью?')) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('DELETE', '/deleteMovie?id=' + movieId, true);
 
-    var xhr = new XMLHttpRequest();
-    xhr.open('DELETE', '/deleteArticle?id=' + articleId, true);
+        xhr.onload = function () {
+            if (xhr.status === 200) {
+                alert('Вы успешно удалили статью');
+                location.reload();
+            } else {
+                alert('Ошибка при удалении статьи, попробуйте еще раз');
+            }
+        };
 
-    xhr.onload = function () {
-    if (xhr.status === 200) {
-        alert('Вы успешно удалили статью');
-    location.reload();
-} else {
-
-    alert('ошибка при удалении статьи, попробуйте еще раз');
+        xhr.send();
+    }
 }
-};
 
-
-    xhr.send();
-}
-}
-function createArticle() {
+function createMovie() {
     var form = $("#create-form");
     var data = form.serialize();
 
-    $.post("/createArticle", data, function (response) {
+    $.post("/createMovie", data, function (response) {
         if (response.status === "success") {
             alert("Статья успешно создана!");
             location.reload();
@@ -37,11 +35,11 @@ function createArticle() {
         }
     });
 }
-function updateArticle(articleId) {
-    var form = $("#update-form-" + articleId);
+function updateMovie(movieId) {
+    var form = $("#update-form-" + movieId);
     var data = form.serialize();
 
-    $.post("/updateArticle", data, function (response) {
+    $.post("/updateMovie", data, function (response) {
         if (response.status === "success") {
             alert("Статья успешно обновлена!");
             location.reload(); // Обновить страницу после успешного обновления
@@ -51,16 +49,3 @@ function updateArticle(articleId) {
     });
 }
 
-function createDepartment() {
-    var form = $("#create-form");
-    var data = form.serialize();
-
-    $.post("/createDepartment", data, function (response) {
-        if (response.status === "success") {
-            alert("Статья успешно создана!");
-            location.reload();
-        } else {
-            alert("Ошибка при создании статьи!");
-        }
-    });
-}

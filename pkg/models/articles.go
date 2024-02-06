@@ -10,34 +10,26 @@ import (
 )
 
 var (
-	ErrNoArticle = errors.New("models: no matching article found")
-	ErrDuplicate = errors.New("models: duplicate article title")
+	ErrNoMovie   = errors.New("models: no matching movie found")
+	ErrDuplicate = errors.New("models: duplicate movie title")
 )
 
-type Article struct {
-	ID        int
-	Title     string
-	Content   string
-	Created   time.Time
-	Category  sql.NullString
-	DepID     int
-	Name      string
-	Quantinty int
+type Movie struct {
+	ID          int
+	Title       string
+	Genre       string
+	Rating      int
+	SessionTime time.Time
 }
 
-type ArticleModel struct {
+type MovieModel struct {
 	DB *sql.DB
 }
-type Department struct {
-	ID       int
-	Name     string
-	Quantity int
-}
 
-func (m *ArticleModel) Create(title, content, category string) error {
-	stmt := `INSERT INTO articles (title, content, category, created) VALUES (?, ?, ?, UTC_TIMESTAMP())`
+func (m *MovieModel) Create(title, genre string, rating int, sessionTime time.Time) error {
+	stmt := `INSERT INTO movies (title, genre, rating, sessionTime) VALUES (?, ?, ?, ?)`
 
-	_, err := m.DB.Exec(stmt, title, content, category)
+	_, err := m.DB.Exec(stmt, title, genre, rating, sessionTime)
 	if err != nil {
 		if isDuplicateError(err) {
 			return ErrDuplicate
@@ -47,9 +39,9 @@ func (m *ArticleModel) Create(title, content, category string) error {
 	return nil
 }
 
-func (m *ArticleModel) Update(title, content, category string, id int) error {
-	stmt := `UPDATE articles SET title=?, content=?, category=?, created=UTC_TIMESTAMP() WHERE id=?`
-	_, err := m.DB.Exec(stmt, title, content, category, id)
+func (m *MovieModel) Update(title, genre string, id, rating int, sessionTime time.Time) error {
+	stmt := `UPDATE movies SET title=?, genre=?, rating=?, sessionTime=? WHERE id=?`
+	_, err := m.DB.Exec(stmt, title, genre, rating, sessionTime, id)
 	if err != nil {
 		if isDuplicateError(err) {
 			return ErrDuplicate
@@ -58,9 +50,9 @@ func (m *ArticleModel) Update(title, content, category string, id int) error {
 	}
 	return nil
 }
+func (m *MovieModel) Delete(id int) error {
+	stmt := `DELETE FROM movies WHERE id=?`
 
-func (m *ArticleModel) Delete(id int) error {
-	stmt := `DELETE FROM articles WHERE id=?`
 	_, err := m.DB.Exec(stmt, id)
 	if err != nil {
 		if isDuplicateError(err) {
@@ -70,83 +62,81 @@ func (m *ArticleModel) Delete(id int) error {
 	}
 	return nil
 }
-
-// Helper function to check if a MySQL error is a duplicate entry error
 func isDuplicateError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "Error 1062:")
 }
 
-func (m *ArticleModel) Get(id int) (*Article, error) {
+func (m *MovieModel) Get(id int) (*Movie, error) {
 
-	stmt := `SELECT id, title,  content, category,  created FROM articles WHERE id = ?`
+	stmt := `SELECT id, title,  genre, rating,  sessionTime FROM movies WHERE id = ?`
 	row := m.DB.QueryRow(stmt, id)
 
-	article := &Article{}
-	err := row.Scan(&article.ID, &article.Title, &article.Content, &article.Category, &article.Created)
+	movie := &Movie{}
+	err := row.Scan(&movie.ID, &movie.Title, &movie.Genre, &movie.Rating, &movie.SessionTime)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNoArticle
+			return nil, ErrNoMovie
 		}
 		return nil, err
 	}
 
-	return article, nil
+	return movie, nil
 }
 
-func (m *ArticleModel) Latest(int) ([]*Article, error) {
+func (m *MovieModel) Latest(int) ([]*Movie, error) {
 
-	stmt := `SELECT id, title, content, category, created FROM articles ORDER BY created DESC LIMIT 10`
+	stmt := `SELECT id, title, genre, rating, sessionTime FROM movies ORDER BY sessionTime DESC LIMIT 10`
 	rows, err := m.DB.Query(stmt)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var articles []*Article
+	var movies []*Movie
 
 	for rows.Next() {
-		article := &Article{}
-		err := rows.Scan(&article.ID, &article.Title, &article.Content, &article.Category, &article.Created)
+		movie := &Movie{}
+		err := rows.Scan(&movie.ID, &movie.Title, &movie.Genre, &movie.Rating, &movie.SessionTime)
 		if err != nil {
 			return nil, err
 		}
-		articles = append(articles, article)
+		movies = append(movies, movie)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return articles, nil
+	return movies, nil
 }
-func (m *ArticleModel) GetArticlesByCategory(category string) ([]*Article, error) {
+func (m *MovieModel) GetMovieByGenre(genre string) ([]*Movie, error) {
 	query := `
-        SELECT id, title, content, category
-        FROM articles
-        WHERE category = ?
-        ORDER BY created DESC
+        SELECT id, genre, rating, sessionTime
+        FROM movies
+        WHERE genre = ?
+        ORDER BY sessionTime DESC
     `
 
-	rows, err := m.DB.Query(query, category)
+	rows, err := m.DB.Query(query, genre)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var articles []*Article
+	var movies []*Movie
 
 	for rows.Next() {
-		article := &Article{}
-		err := rows.Scan(&article.ID, &article.Title, &article.Content, &article.Category)
+		movie := &Movie{}
+		err := rows.Scan(&movie.ID, &movie.Title, &movie.Genre, &movie.SessionTime)
 		if err != nil {
 			return nil, err
 		}
-		articles = append(articles, article)
+		movies = append(movies, movie)
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return articles, nil
+	return movies, nil
 }

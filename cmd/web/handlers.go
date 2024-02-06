@@ -4,63 +4,64 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 	"tleukanov.net/snippetbox/pkg/models"
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	articles, err := app.articles.Latest(10)
+	movies, err := app.movies.Latest(10)
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
 
 	err = app.render(w, r, "home.page.tmpl", &templateData{
-		Articles: articles,
+		Movies: movies,
 	})
 	if err != nil {
 		app.serverError(w, err)
 	}
 }
-func (app *application) forStudents(w http.ResponseWriter, r *http.Request) {
-	articles, err := app.articles.GetArticlesByCategory("For students")
+func (app *application) horror(w http.ResponseWriter, r *http.Request) {
+	movies, err := app.movies.GetMovieByGenre("horror")
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
 
-	app.render(w, r, "students.page.tmpl", &templateData{ForStudents: articles})
+	app.render(w, r, "horror.page.tmpl", &templateData{Horror: movies})
 }
 
-func (app *application) forStaff(w http.ResponseWriter, r *http.Request) {
-	articles, err := app.articles.GetArticlesByCategory("For staff")
+func (app *application) comedy(w http.ResponseWriter, r *http.Request) {
+	movies, err := app.movies.GetMovieByGenre("comedy")
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
 
-	app.render(w, r, "staff.page.tmpl", &templateData{ForStaff: articles})
+	app.render(w, r, "comedy.page.tmpl", &templateData{Comedy: movies})
 }
 
-func (app *application) forApplicants(w http.ResponseWriter, r *http.Request) {
-	articles, err := app.articles.GetArticlesByCategory("For applicants")
+func (app *application) drama(w http.ResponseWriter, r *http.Request) {
+	movies, err := app.movies.GetMovieByGenre("drama")
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
 
-	app.render(w, r, "applicants.page.tmpl", &templateData{ForApplicants: articles})
+	app.render(w, r, "drama.page.tmpl", &templateData{Drama: movies})
 }
 
-func (app *application) forResearches(w http.ResponseWriter, r *http.Request) {
-	articles, err := app.articles.GetArticlesByCategory("For researches")
+func (app *application) sciFi(w http.ResponseWriter, r *http.Request) {
+	movies, err := app.movies.GetMovieByGenre("sciFi")
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
 
-	app.render(w, r, "researches.page.tmpl", &templateData{ForResearches: articles})
+	app.render(w, r, "scifi.page.tmpl", &templateData{SciFi: movies})
 }
-func (app *application) createArticle(w http.ResponseWriter, r *http.Request) {
+func (app *application) createMovie(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		app.clientError(w, http.StatusMethodNotAllowed)
 		return
@@ -73,10 +74,23 @@ func (app *application) createArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	title := r.PostForm.Get("title")
-	content := r.PostForm.Get("content")
-	category := r.PostForm.Get("category")
+	genre := r.PostForm.Get("genre")
+	ratingStr := r.PostForm.Get("rating")
+	sessionTimeStr := r.PostForm.Get("sessionTime")
 
-	err = app.articles.Create(title, content, category)
+	rating, err := strconv.Atoi(ratingStr)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	sessionTime, err := time.Parse("2006-01-02T15:04", sessionTimeStr)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	err = app.movies.Create(title, genre, rating, sessionTime)
 	if errors.Is(err, models.ErrDuplicate) {
 		app.clientError(w, http.StatusBadRequest)
 		return
@@ -87,8 +101,7 @@ func (app *application) createArticle(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
-
-func (app *application) updateArticle(w http.ResponseWriter, r *http.Request) {
+func (app *application) updateMovie(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		app.clientError(w, http.StatusMethodNotAllowed)
 		return
@@ -105,12 +118,25 @@ func (app *application) updateArticle(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
 		return
 	}
+
 	title := r.PostForm.Get("title")
-	category := r.PostForm.Get("category")
-	content := r.PostForm.Get("content")
+	genre := r.PostForm.Get("genre")
+	ratingStr := r.PostForm.Get("rating")
+	sessionTimeStr := r.PostForm.Get("sessionTime")
 
-	err = app.articles.Update(title, content, category, id)
+	rating, err := strconv.Atoi(ratingStr)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
 
+	sessionTime, err := time.Parse("2006-01-02T15:04", sessionTimeStr)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	err = app.movies.Update(title, genre, id, rating, sessionTime)
 	if errors.Is(err, models.ErrDuplicate) {
 		app.clientError(w, http.StatusBadRequest)
 		return
@@ -120,10 +146,9 @@ func (app *application) updateArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
-
 }
 
-func (app *application) deleteArticle(w http.ResponseWriter, r *http.Request) {
+func (app *application) deleteMovie(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		app.clientError(w, http.StatusMethodNotAllowed)
 		return
@@ -135,7 +160,7 @@ func (app *application) deleteArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = app.articles.Delete(id)
+	err = app.movies.Delete(id)
 	if err != nil {
 		app.serverError(w, err)
 		return

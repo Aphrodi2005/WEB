@@ -10,13 +10,13 @@ import (
 
 type templateData struct {
 	CurrentYear      int
-	Articles         []*models.Article
-	Article          *models.Article
+	Movies           []*models.Movie
+	Movie            *models.Movie
 	SelectedCategory string
-	ForStudents      []*models.Article
-	ForStaff         []*models.Article
-	ForResearches    []*models.Article
-	ForApplicants    []*models.Article
+	Horror           []*models.Movie
+	Comedy           []*models.Movie
+	Drama            []*models.Movie
+	SciFi            []*models.Movie
 }
 
 func humanDate(t time.Time) string {
