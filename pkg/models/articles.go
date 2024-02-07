@@ -111,7 +111,7 @@ func (m *MovieModel) Latest(int) ([]*Movie, error) {
 }
 func (m *MovieModel) GetMovieByGenre(genre string) ([]*Movie, error) {
 	query := `
-        SELECT id, genre, rating, sessionTime
+        SELECT id, title, genre, rating, sessionTime
         FROM movies
         WHERE genre = ?
         ORDER BY sessionTime DESC
@@ -127,7 +127,7 @@ func (m *MovieModel) GetMovieByGenre(genre string) ([]*Movie, error) {
 
 	for rows.Next() {
 		movie := &Movie{}
-		err := rows.Scan(&movie.ID, &movie.Title, &movie.Genre, &movie.SessionTime)
+		err := rows.Scan(&movie.ID, &movie.Title, &movie.Genre, &movie.Rating, &movie.SessionTime)
 		if err != nil {
 			return nil, err
 		}
