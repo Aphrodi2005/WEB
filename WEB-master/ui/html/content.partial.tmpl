@@ -5,34 +5,44 @@
         <p class="card-genre">{{ .Genre }}</p>
         <p class="card-rating">{{ .Rating }}</p>
         <p class="card-session-time">{{ .SessionTime }}</p>
+
         <button class="btn btn-primary mb-4" onclick="toggleUpdateForm('{{ .ID }}')">Update</button>
+
         <form id="update-form-{{ .ID }}" method="POST" action="/updateMovie" style="display: none;">
-            <input type="hidden" name="id" value="{{ .ID }}">
+          {{with .Form}}
+
+
             <div class="mb-3">
                 <label for="title" class="form-label">Title:</label>
-                <input type="text" class="form-control" id="title" name="title" value="{{ .Title }}" required>
+                {{with .Errors.Get "title"}}
+                    <label class='error'>{{.}}</label>
+                {{end}}
+                <input type="text" class="form-control" id="title" name="title" value="{{ .Get "title"}}" required>
             </div>
+
             <div class="mb-3">
-                <label for="genre" class="form-label">Genre:</label>
-                <select class="form-select" id="genre" name="genre" required>
-                    <option value="horror" {{ if eq .Genre "horror" }} selected {{ end }}>Horror</option>
-                    <option value="comedy" {{ if eq .Genre "comedy" }} selected {{ end }}>Comedy</option>
-                    <option value="drama" {{ if eq .Genre "drama" }} selected {{ end }}>Drama</option>
-                    <option value="scifi" {{ if eq .Genre "scifi" }} selected {{ end }}>Scifi</option>
-                </select>
+                <label>Genre:</label>
+                              <select name="genre">
+                                  <option value="horror">Horror</option>
+                                  <option value="comedy">Comedy</option>
+                                  <option value="drama">Drama</option>
+                                  <option value="scifi">Sci-fi</option>
+
+                              </select>
             </div>
             <div class="mb-3">
                 <label for="rating" class="form-label">Rating:</label>
-                <input type="number" class="form-control" id="rating" name="rating" value="{{ .Rating }}" min="1" max="10" required>
+                <input type="number" class="form-control" id="rating" name="rating" value="{{.Get "rating"}}" min="1" max="10" required>
             </div>
             <div class="mb-3">
                 <label for="sessionTime" class="form-label">Session Time:</label>
-                <input type="datetime-local" class="form-control" id="sessionTime" name="sessionTime" value="{{ .SessionTime }}" required>
+                <input type="datetime-local" class="form-control" id="sessionTime" name="sessionTime" value="{{ .Get "sessionTime" }}" required>
             </div>
             <button class="btn btn-warning update-movie-btn" type="submit" data-movie-id="{{ .ID }}">Update</button>
+         {{end}}
         </form>
 
-    <form id="delete-form-{{ .ID }}" onsubmit="deleteMovie('{{ .ID.Hex }}'); return false;">
+    <form id="delete-form-{{ .Movies.ID }}" onsubmit="deleteMovie('{{ .Movies.ID.Hex }}'); return false;">
         <input type="hidden" name="id" value="{{ .ID }}">
         <button class="btn btn-danger delete-movie-btn" type="submit">Delete</button>
     </form>

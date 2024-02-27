@@ -1,22 +1,25 @@
 package main
 
 import (
+	"Movies/pkg/models/db"
 	"context"
 	"flag"
+	"github.com/golangcollege/sessions"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
-	"tleukanov.net/snippetbox/pkg/models"
-
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"time"
 )
 
 type application struct {
 	errorLog *log.Logger
 	infoLog  *log.Logger
-	movies   *models.MovieModel
+	session  *sessions.Session
+
+	movies *db.MovieModel
 
 	templateCache map[string]*template.Template
 }
@@ -24,6 +27,9 @@ type application struct {
 func main() {
 	dsn := flag.String("dsn", "mongodb+srv://Aphrodi:2000@cluster0.vkgghvi.mongodb.net/?retryWrites=true&w=majority", "MongoDB data source name")
 	addr := flag.String("addr", ":4000", "HTTP network address")
+
+	secret := flag.String("secret", "s6Ndh+pPbnzHbS*+9Pk8qGWhTzbpa@kz", "Secret key")
+
 	flag.Parse()
 
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
@@ -48,15 +54,19 @@ func main() {
 	infoLog.Println("Connected to MongoDB!")
 
 	// Initialize template cache
-	templateCache, err := templateCache("./ui/html/")
+	templateCache, err := newTemplateCache("./ui/html/")
 	if err != nil {
 		errorLog.Fatal(err)
 	}
 
+	session := sessions.New([]byte(*secret))
+	session.Lifetime = 12 * time.Hour
+
 	app := &application{
 		errorLog:      errorLog,
 		infoLog:       infoLog,
-		movies:        &models.MovieModel{Collection: client.Database("Cluster0").Collection("movies")},
+		session:       session,
+		movies:        &db.MovieModel{Collection: client.Database("Cluster0").Collection("movies")},
 		templateCache: templateCache,
 	}
 

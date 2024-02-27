@@ -1,55 +1,41 @@
-package models
+package db
 
 import (
+	"Movies/pkg/models"
 	"context"
-	"errors"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"strings"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
-
-var (
-	ErrNoMovie   = errors.New("models: no matching movie found")
-	ErrDuplicate = errors.New("models: duplicate movie title")
-)
-
-type Movie struct {
-	ID          primitive.ObjectID `bson:"_id,omitempty"`
-	Title       string             `bson:"title"`
-	Genre       string             `bson:"genre"`
-	Rating      int                `bson:"rating"`
-	SessionTime time.Time          `bson:"sessionTime"`
-}
 
 type MovieModel struct {
 	Collection *mongo.Collection
 }
 
-func (m *MovieModel) Create(title, genre string, rating int, sessionTime time.Time) error {
+func (m *MovieModel) Create(title, genre string, rating float64, sessionTime time.Time) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Создаем новый документ для фильма
-	movie := Movie{
-		Title:       title,
-		Genre:       genre,
-		Rating:      rating,
-		SessionTime: sessionTime,
+	movie := bson.M{
+		"title":       title,
+		"genre":       genre,
+		"rating":      rating,
+		"sessionTime": sessionTime,
 	}
 
 	// Вставляем документ в коллекцию MongoDB
-	_, err := m.Collection.InsertOne(ctx, movie)
-	if err != nil {
-		if isDuplicateError(err) {
-			return ErrDuplicate
-		}
-		return err
+	res, err := m.Collection.InsertOne(ctx, movie)
+	if err != nil || isDuplicateError(err) {
+		return "", models.ErrDuplicate
 	}
-	return nil
+
+	// Return the ID of the inserted document
+	id := res.InsertedID.(primitive.ObjectID).Hex()
+	return id, nil
 }
 
 func (m *MovieModel) Update(id primitive.ObjectID, title, genre string, rating int, sessionTime time.Time) error {
@@ -72,7 +58,7 @@ func (m *MovieModel) Update(id primitive.ObjectID, title, genre string, rating i
 
 	// Проверка результата обновления
 	if res.MatchedCount == 0 {
-		return ErrNoMovie
+		return models.ErrNoMovie
 	}
 
 	return nil
@@ -89,28 +75,28 @@ func (m *MovieModel) Delete(_id primitive.ObjectID) error {
 		return err
 	}
 	if res.DeletedCount == 0 {
-		return ErrNoMovie
+		return models.ErrNoMovie
 	}
 	return nil
 }
 
-func (m *MovieModel) Get(id primitive.ObjectID) (*Movie, error) {
+func (m *MovieModel) Get(id primitive.ObjectID) (*models.Movies, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Выполняем запрос поиска по ID
-	var movie Movie
+	var movie models.Movies
 	err := m.Collection.FindOne(ctx, bson.M{"_id": id}).Decode(&movie)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, ErrNoMovie
+			return nil, models.ErrNoMovie
 		}
 		return nil, err
 	}
 	return &movie, nil
 }
 
-func (m *MovieModel) Latest(limit int64) ([]*Movie, error) {
+func (m *MovieModel) Latest(limit int64) ([]*models.Movies, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -123,9 +109,9 @@ func (m *MovieModel) Latest(limit int64) ([]*Movie, error) {
 	defer cur.Close(ctx)
 
 	// Обрабатываем результаты запроса
-	var movies []*Movie
+	var movies []*models.Movies
 	for cur.Next(ctx) {
-		var movie Movie
+		var movie models.Movies
 		if err := cur.Decode(&movie); err != nil {
 			return nil, err
 		}
@@ -137,7 +123,7 @@ func (m *MovieModel) Latest(limit int64) ([]*Movie, error) {
 	return movies, nil
 }
 
-func (m *MovieModel) GetMovieByGenre(genre string) ([]*Movie, error) {
+func (m *MovieModel) GetMovieByGenre(genre string) ([]*models.Movies, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -150,9 +136,9 @@ func (m *MovieModel) GetMovieByGenre(genre string) ([]*Movie, error) {
 	defer cur.Close(ctx)
 
 	// Обрабатываем результаты запроса
-	var movies []*Movie
+	var movies []*models.Movies
 	for cur.Next(ctx) {
-		var movie Movie
+		var movie models.Movies
 		if err := cur.Decode(&movie); err != nil {
 			return nil, err
 		}

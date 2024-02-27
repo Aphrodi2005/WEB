@@ -1,12 +1,13 @@
 package main
 
 import (
+	"Movies/pkg/forms"
+	"Movies/pkg/models"
 	"errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"strconv"
 	"time"
-	"tleukanov.net/snippetbox/pkg/models"
 )
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
@@ -17,12 +18,11 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = app.render(w, r, "home.page.tmpl", &templateData{
+
 		Movies: movies,
 	})
-	if err != nil {
-		app.serverError(w, err)
-	}
 }
+
 func (app *application) horror(w http.ResponseWriter, r *http.Request) {
 	movies, err := app.movies.GetMovieByGenre("horror")
 	if err != nil {
@@ -70,28 +70,32 @@ func (app *application) createMovie(w http.ResponseWriter, r *http.Request) {
 
 	err := r.ParseForm()
 	if err != nil {
-		app.serverError(w, err)
+		app.clientError(w, http.StatusBadRequest)
 		return
 	}
 
-	title := r.PostForm.Get("title")
-	genre := r.PostForm.Get("genre")
-	ratingStr := r.PostForm.Get("rating")
-	sessionTimeStr := r.PostForm.Get("sessionTime")
+	form := forms.New(r.PostForm)
+	form.Required("title", "genre", "rating")
+	form.MaxLength("title", 100)
 
-	rating, err := strconv.Atoi(ratingStr)
+	if !form.Valid() {
+		app.render(w, r, "/", &templateData{Form: form})
+		return
+	}
+
+	rating, err := strconv.ParseFloat(form.Get("rating"), 64)
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
 		return
 	}
 
-	sessionTime, err := time.Parse("2006-01-02T15:04", sessionTimeStr)
+	sessionTime, err := time.Parse("2006-01-02T15:04", form.Get("sessionTime"))
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
 		return
 	}
 
-	err = app.movies.Create(title, genre, rating, sessionTime)
+	_, err = app.movies.Create(form.Get("title"), form.Get("genre"), rating, sessionTime)
 	if errors.Is(err, models.ErrDuplicate) {
 		app.clientError(w, http.StatusBadRequest)
 		return
@@ -99,6 +103,8 @@ func (app *application) createMovie(w http.ResponseWriter, r *http.Request) {
 		app.serverError(w, err)
 		return
 	}
+
+	app.session.Put(r, "flash", "Successfully created!")
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

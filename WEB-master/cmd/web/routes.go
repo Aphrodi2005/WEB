@@ -1,26 +1,31 @@
 package main
 
 import (
-	"github.com/gorilla/mux"
+	"github.com/bmizerany/pat"
+	"github.com/justinas/alice"
 	"net/http"
 )
 
 func (app *application) routes() http.Handler {
+	standardMiddleware := alice.New(app.recoverPanic, app.logRequest, secureHeaders)
+	dynamicMiddleware := alice.New(app.session.Enable)
 
-	mux := mux.NewRouter()
+	mux := pat.New()
+	mux.Get("/", dynamicMiddleware.ThenFunc(app.home))
 
-	mux.HandleFunc("/horror", app.horror)
-	mux.HandleFunc("/comedy", app.comedy)
-	mux.HandleFunc("/drama", app.drama)
-	mux.HandleFunc("/scifi", app.sciFi)
+	mux.Get("/horror", dynamicMiddleware.ThenFunc(app.horror))
+	mux.Get("/comedy", dynamicMiddleware.ThenFunc(app.comedy))
+	mux.Get("/drama", dynamicMiddleware.ThenFunc(app.drama))
+	mux.Get("/scifi", dynamicMiddleware.ThenFunc(app.sciFi))
 
-	mux.HandleFunc("/", app.home)
-	mux.HandleFunc("/createMovie", app.createMovie)
-	mux.HandleFunc("/updateMovie", app.updateMovie).Methods("POST")
-	mux.HandleFunc("/deleteMovie", app.deleteMovie).Methods("DELETE")
-	mux.HandleFunc("/contacts", app.contacts)
+	mux.Post("/createMovie", dynamicMiddleware.ThenFunc(app.createMovie))
+	mux.Put("/updateMovie", dynamicMiddleware.ThenFunc(app.updateMovie))
+	mux.Del("/deleteMovie", dynamicMiddleware.ThenFunc(app.deleteMovie))
+	mux.Get("/contacts", dynamicMiddleware.ThenFunc(app.contacts))
+
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	mux.PathPrefix("/static/").Handler(http.StripPrefix("/static", fileServer))
+	mux.Get("/static/", http.StripPrefix("/static", fileServer))
 
-	return mux
+	return standardMiddleware.Then(mux)
+
 }
